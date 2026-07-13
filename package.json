@@ -1,0 +1,55 @@
+{
+  "name": "autopost",
+  "version": "0.1.0",
+  "description": "Desktop app for scheduling and analyzing Facebook/Meta Page posts via the official Graph API.",
+  "main": "./out/main/index.js",
+  "author": "AutoPost",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "build:win": "electron-vite build && electron-builder --win",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "@fontsource-variable/outfit": "^5.2.8",
+    "axios": "^1.18.1",
+    "better-sqlite3": "^12.11.1",
+    "date-fns": "^4.4.0",
+    "dotenv": "^17.4.2",
+    "form-data": "^4.0.6",
+    "kysely": "^0.29.3",
+    "node-cron": "^4.6.0",
+    "p-queue": "^9.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.1",
+    "recharts": "^3.9.2",
+    "selfsigned": "^5.5.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.14.9",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3"
+  },
+  "allowScripts": {
+    "electron@31.7.7": true,
+    "esbuild@0.21.5": true,
+    "better-sqlite3@12.11.1": true
+  }
+}
