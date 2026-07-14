@@ -12,6 +12,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "vitest run",
     "build:win": "electron-vite build && electron-builder --win",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
@@ -45,7 +46,8 @@
     "electron-builder": "^24.13.3",
     "electron-vite": "^2.3.0",
     "typescript": "^5.5.3",
-    "vite": "^5.3.3"
+    "vite": "^5.3.3",
+    "vitest": "^3.0.0"
   },
   "allowScripts": {
     "electron@31.7.7": true,
