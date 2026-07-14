@@ -1077,3 +1077,90 @@ input[type='checkbox'] {
   font-weight: 500;
   font-size: 0.85rem;
 }
+
+/* ---------- Dashboard (fanpage) ---------- */
+
+.dashboard-page-picker {
+  margin-bottom: 1rem;
+}
+
+.dashboard-page-picker select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.dashboard-page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-page-header .page-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dashboard-page-header > div:nth-child(2) {
+  flex: 1;
+}
+
+.comparison-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.comparison-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+}
+
+.comparison-card h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.comparison-metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comparison-metrics li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.comparison-metrics strong {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.comparison-metrics .pct {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.post-table th {
+  cursor: pointer;
+  user-select: none;
+}

@@ -192,3 +192,13 @@ export function IconFacebook(props: IconProps) {
     </svg>
   )
 }
+
+export function IconGauge(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 19a8 8 0 1 1 15 0" />
+      <path d="M12 12 15 8" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
 import type { AppInfo } from '@shared/types'
-import { IconCalendar, IconChart, IconEdit, IconGear, IconHeart, IconHome, IconLayers, IconLogs } from './components/Icons'
+import { IconCalendar, IconChart, IconEdit, IconGauge, IconGear, IconHeart, IconHome, IconLayers, IconLogs } from './components/Icons'
 import ConnectPages from './pages/ConnectPages'
 import Composer from './pages/Composer'
 import Overview from './pages/Overview'
 import Schedule from './pages/Schedule'
 import Reports from './pages/Reports'
+import Dashboard from './pages/Dashboard'
 import SystemLogs from './pages/SystemLogs'
 import Setup from './pages/Setup'
 import LikeComment from './pages/LikeComment'
@@ -48,6 +49,9 @@ function App(): JSX.Element {
             <NavLink to="/interactions" className="nav-link">
               <IconHeart /> Comment
             </NavLink>
+            <NavLink to="/dashboard" className="nav-link">
+              <IconGauge /> Dashboard
+            </NavLink>
             <NavLink to="/reports" className="nav-link">
               <IconChart /> Báo cáo
             </NavLink>
@@ -68,6 +72,7 @@ function App(): JSX.Element {
             <Route path="/pages" element={<ConnectPages />} />
             <Route path="/page-editor" element={<PageEditor />} />
             <Route path="/interactions" element={<LikeComment />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/logs" element={<SystemLogs />} />
             <Route path="/setup" element={<Setup />} />
