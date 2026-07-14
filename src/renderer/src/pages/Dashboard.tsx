@@ -15,14 +15,13 @@ function formatPct(value: number | null): string {
 
 function ComparisonCard({ title, comparison }: { title: string; comparison: WindowComparisonDto }): JSX.Element {
   const insufficient = comparison.pctChange === 'insufficient-data'
-  const pct = insufficient
-    ? null
-    : (comparison.pctChange as Partial<Record<keyof WindowComparisonDto['current'], number | null>>)
+  const pct = comparison.pctChange === 'insufficient-data' ? null : comparison.pctChange
 
   const rows: Array<{ label: string; value: number | null; key: keyof WindowComparisonDto['current'] }> = [
     { label: 'Follower tăng ròng', value: comparison.current.followerNetChange, key: 'followerNetChange' },
     { label: 'Số bài đăng', value: comparison.current.postCount, key: 'postCount' },
     { label: 'Tổng reach', value: comparison.current.totalReach, key: 'totalReach' },
+    { label: 'Tổng reach Page', value: comparison.current.totalPageReach, key: 'totalPageReach' },
     { label: 'Tổng reaction', value: comparison.current.totalReactions, key: 'totalReactions' },
     { label: 'Tổng comment', value: comparison.current.totalComments, key: 'totalComments' },
     { label: 'Tổng share', value: comparison.current.totalShares, key: 'totalShares' },
@@ -80,6 +79,15 @@ function Dashboard(): JSX.Element {
       ...point,
       label: format(new Date(point.date), 'MMM d')
     }))
+  }, [analytics])
+
+  const followerPctChange = useMemo(() => {
+    if (!analytics || analytics.followerHistory.length < 2) return null
+    const history = analytics.followerHistory
+    const last = history[history.length - 1]
+    const secondLast = history[history.length - 2]
+    if (secondLast.followerCount === 0) return null
+    return ((last.followerCount - secondLast.followerCount) / secondLast.followerCount) * 100
   }, [analytics])
 
   const sortedPosts = useMemo(() => {
@@ -146,7 +154,12 @@ function Dashboard(): JSX.Element {
                 </div>
                 <div className="stat-tile" style={{ ['--tile-color' as string]: 'var(--accent)' }}>
                   <span className="stat-tile-label">FOLLOWER</span>
-                  <span className="stat-tile-value">{analytics.pageInfo.followerCount ?? '—'}</span>
+                  <span className="stat-tile-value">
+                    {analytics.pageInfo.followerCount ?? '—'}
+                    {followerPctChange !== null && (
+                      <span className="pct"> {formatPct(followerPctChange)}</span>
+                    )}
+                  </span>
                 </div>
               </div>
 
