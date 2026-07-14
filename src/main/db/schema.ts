@@ -52,6 +52,15 @@ export interface AnalyticsSnapshotsTable {
   period: string
 }
 
+export interface PageSnapshotsTable {
+  id: Generated<number>
+  page_id: number
+  captured_at: string
+  follower_count: number
+  page_reach: number | null
+  created_at: Generated<string>
+}
+
 export interface AppSettingsTable {
   key: string
   value: string
@@ -86,6 +95,7 @@ export interface Database {
   media_assets: MediaAssetsTable
   post_targets: PostTargetsTable
   analytics_snapshots: AnalyticsSnapshotsTable
+  page_snapshots: PageSnapshotsTable
   app_settings: AppSettingsTable
   system_logs: SystemLogsTable
   interaction_tasks: InteractionTasksTable

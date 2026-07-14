@@ -3,12 +3,14 @@ import * as m001 from './001_initial'
 import * as m002 from './002_system_logs'
 import * as m003 from './003_interactions'
 import * as m004 from './004_user_token'
+import * as m005 from './005_page_snapshots'
 
 const migrations: Record<string, Migration> = {
   '001_initial': m001,
   '002_system_logs': m002,
   '003_interactions': m003,
-  '004_user_token': m004
+  '004_user_token': m004,
+  '005_page_snapshots': m005
 }
 
 export const migrationProvider: MigrationProvider = {
