@@ -83,3 +83,29 @@ export interface AppInfo {
   metaAppId: string | null
   graphApiVersion: string
 }
+
+export interface PageDetails {
+  fbPageId: string
+  name: string
+  about: string | null
+  pictureUrl: string | null
+}
+
+export type ReactionType = 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
+export type InteractionActionType = ReactionType | 'comment'
+export type InteractionTaskStatus = 'pending' | 'done' | 'failed'
+
+export interface InteractionTask {
+  id: number
+  postUrl: string
+  targetObjectId: string
+  pageId: number
+  pageName: string
+  actionType: InteractionActionType
+  commentText: string | null
+  status: InteractionTaskStatus
+  errorMessage: string | null
+  scheduledAt: string
+  executedAt: string | null
+  createdAt: string
+}

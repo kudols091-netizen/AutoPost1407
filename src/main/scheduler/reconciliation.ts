@@ -12,6 +12,8 @@ import { getPostPublishStatus } from '../graph/posts'
 import { submitPostTargets } from '../posting/submitPost'
 import { snapshotAllPublishedTargets, snapshotTarget } from './analyticsPoller'
 import { addSystemLog } from '../db/repositories/systemLogsRepo'
+import { listPendingDueTasks } from '../db/repositories/interactionsRepo'
+import { executeInteractionTask } from '../posting/executeInteraction'
 
 /** Re-attempts posts left in `draft` because their schedule was outside the 30-day window. */
 async function resubmitDraftPosts(): Promise<void> {
@@ -60,6 +62,25 @@ async function syncScheduledTargets(): Promise<void> {
   await reconcilePostStatuses()
 }
 
+/** Executes interaction tasks (react/comment) whose scheduled_at is now due. */
+async function executePendingInteractions(): Promise<void> {
+  const tasks = await listPendingDueTasks()
+  for (const task of tasks) {
+    try {
+      await executeInteractionTask(task.id)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error(`[reconciliation] interaction task ${task.id} failed`, err)
+      await addSystemLog({
+        level: 'error',
+        category: 'interaction',
+        message: `Lỗi thực hiện tác vụ tương tác #${task.id}`,
+        detail: message
+      })
+    }
+  }
+}
+
 /** Once none of a post's targets are still `scheduled`, roll the post up to `published`. */
 async function reconcilePostStatuses(): Promise<void> {
   const scheduledPosts = await listPostsByStatus('scheduled')
@@ -84,6 +105,7 @@ export function startReconciliationScheduler(): void {
       await resubmitDraftPosts()
       await syncScheduledTargets()
       await snapshotAllPublishedTargets()
+      await executePendingInteractions()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('[reconciliation] run failed', err)

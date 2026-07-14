@@ -10,7 +10,7 @@ export default defineConfig({
     // pure-JS deps to CJS at build time instead of leaving them as runtime require()s.
     build: {
       rollupOptions: {
-        external: ['better-sqlite3']
+        external: ['better-sqlite3', 'electron']
       }
     },
     resolve: {

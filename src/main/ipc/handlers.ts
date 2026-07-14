@@ -1,8 +1,8 @@
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { app, ipcMain } from 'electron'
-import type { AppInfo, Page, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
-import { createPostSchema, importMediaSchema } from '@shared/ipcSchemas'
+import type { AppInfo, InteractionTask, Page, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
+import { createInteractionSchema, createPostSchema, importMediaSchema, updatePageInfoSchema, uploadPagePictureSchema } from '@shared/ipcSchemas'
 import { GRAPH_API_VERSION, getMetaAppConfig } from '../config/metaApp'
 import { connectFacebookPages } from '../oauth/connectFlow'
 import { getPageById, listPages } from '../db/repositories/pagesRepo'
@@ -15,11 +15,21 @@ import {
 } from '../db/repositories/postsRepo'
 import { listSnapshotsForTarget } from '../db/repositories/analyticsRepo'
 import { addSystemLog, listSystemLogs } from '../db/repositories/systemLogsRepo'
+import {
+  createInteractionTask,
+  deleteInteractionTask,
+  getInteractionTaskById,
+  listInteractionTasks
+} from '../db/repositories/interactionsRepo'
 import { submitPostTargets } from '../posting/submitPost'
 import { deletePostEverywhere, type DeletePostResult } from '../posting/deletePost'
+import { executeInteractionTask } from '../posting/executeInteraction'
+import { fetchPageDetails, updatePageInfo, updatePagePicture, uploadPagePicture } from '../graph/pageManager'
 import { importMedia } from '../media/mediaStore'
+import { decryptToken } from '../security/safeStorage'
 import {
   toAnalyticsSnapshotDto,
+  toInteractionTaskDto,
   toPageDto,
   toPostDetailDto,
   toPostDto,
@@ -145,5 +155,107 @@ export function registerIpcHandlers(): void {
     )
 
     return { post: toPostDto(post), targets: targetsWithAnalytics }
+  })
+
+  ipcMain.handle('interactions:create', async (_event, rawInput: unknown): Promise<InteractionTask> => {
+    const input = createInteractionSchema.parse(rawInput)
+    const task = await createInteractionTask({
+      postUrl: input.postUrl,
+      targetObjectId: input.targetObjectId,
+      pageId: input.pageId,
+      actionType: input.actionType,
+      commentText: input.commentText ?? null,
+      scheduledAt: input.scheduledAt
+    })
+    if (input.executeNow) {
+      await executeInteractionTask(task.id)
+      const updated = await getInteractionTaskById(task.id)
+      if (updated) {
+        const page = await getPageById(updated.page_id)
+        return toInteractionTaskDto(updated, page?.name ?? `Page #${updated.page_id}`)
+      }
+    }
+    const page = await getPageById(task.page_id)
+    return toInteractionTaskDto(task, page?.name ?? `Page #${task.page_id}`)
+  })
+
+  ipcMain.handle('interactions:list', async (): Promise<InteractionTask[]> => {
+    const tasks = await listInteractionTasks()
+    return Promise.all(
+      tasks.map(async (task) => {
+        const page = await getPageById(task.page_id)
+        return toInteractionTaskDto(task, page?.name ?? `Page #${task.page_id}`)
+      })
+    )
+  })
+
+  ipcMain.handle('interactions:execute', async (_event, taskId: number): Promise<InteractionTask> => {
+    await executeInteractionTask(taskId)
+    const task = await getInteractionTaskById(taskId)
+    if (!task) throw new Error(`Task ${taskId} not found`)
+    const page = await getPageById(task.page_id)
+    return toInteractionTaskDto(task, page?.name ?? `Page #${task.page_id}`)
+  })
+
+  ipcMain.handle('interactions:delete', async (_event, taskId: number): Promise<void> => {
+    await deleteInteractionTask(taskId)
+  })
+
+  ipcMain.handle('pageEditor:getDetails', async (_event, pageId: number): Promise<PageDetails> => {
+    const page = await getPageById(pageId)
+    if (!page) throw new Error(`Page ${pageId} not found`)
+    const token = decryptToken(page.access_token_enc)
+    const details = await fetchPageDetails(page.fb_page_id, token)
+    return {
+      fbPageId: details.id,
+      name: details.name,
+      about: details.about ?? null,
+      pictureUrl: details.picture?.data?.url ?? null
+    }
+  })
+
+  ipcMain.handle('pageEditor:updateInfo', async (_event, rawInput: unknown): Promise<void> => {
+    const input = updatePageInfoSchema.parse(rawInput)
+    const page = await getPageById(input.pageId)
+    if (!page) throw new Error(`Page ${input.pageId} not found`)
+    const token = decryptToken(page.access_token_enc)
+    const patch: { name?: string; about?: string } = {}
+    if (input.name !== undefined) patch.name = input.name
+    if (input.about !== undefined) patch.about = input.about
+    if (Object.keys(patch).length > 0) {
+      await updatePageInfo(page.fb_page_id, token, patch)
+    }
+    await addSystemLog({
+      level: 'info',
+      category: 'page-editor',
+      message: `Đã cập nhật thông tin Page "${page.name}"`
+    })
+  })
+
+  ipcMain.handle('pageEditor:updatePicture', async (_event, rawInput: unknown): Promise<void> => {
+    const input = updatePageInfoSchema.parse(rawInput)
+    if (!input.pictureUrl) throw new Error('pictureUrl là bắt buộc')
+    const page = await getPageById(input.pageId)
+    if (!page) throw new Error(`Page ${input.pageId} not found`)
+    const token = decryptToken(page.access_token_enc)
+    await updatePagePicture(page.fb_page_id, token, input.pictureUrl)
+    await addSystemLog({
+      level: 'info',
+      category: 'page-editor',
+      message: `Đã cập nhật avatar Page "${page.name}"`
+    })
+  })
+
+  ipcMain.handle('pageEditor:uploadPicture', async (_event, rawInput: unknown): Promise<void> => {
+    const input = uploadPagePictureSchema.parse(rawInput)
+    const page = await getPageById(input.pageId)
+    if (!page) throw new Error(`Page ${input.pageId} not found`)
+    const token = decryptToken(page.access_token_enc)
+    await uploadPagePicture(page.fb_page_id, token, Buffer.from(input.imageData), input.mimeType, input.fileName)
+    await addSystemLog({
+      level: 'info',
+      category: 'page-editor',
+      message: `Đã tải lên avatar mới cho Page "${page.name}"`
+    })
   })
 }

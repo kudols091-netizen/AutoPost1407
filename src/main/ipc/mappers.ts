@@ -1,7 +1,7 @@
 import type { Selectable } from 'kysely'
 import type { PageRow } from '../db/repositories/pagesRepo'
-import type { AnalyticsSnapshotsTable, PostsTable, PostTargetsTable, SystemLogsTable } from '../db/schema'
-import type { AnalyticsSnapshot, Page, Post, PostDetail, PostTarget, SystemLog } from '@shared/types'
+import type { AnalyticsSnapshotsTable, InteractionTasksTable, PostsTable, PostTargetsTable, SystemLogsTable } from '../db/schema'
+import type { AnalyticsSnapshot, InteractionTask, Page, Post, PostDetail, PostTarget, SystemLog } from '@shared/types'
 
 export function toPageDto(row: PageRow): Page {
   return {
@@ -68,5 +68,22 @@ export function toAnalyticsSnapshotDto(row: Selectable<AnalyticsSnapshotsTable>)
     metricName: row.metric_name,
     metricValue: row.metric_value,
     period: row.period
+  }
+}
+
+export function toInteractionTaskDto(row: Selectable<InteractionTasksTable>, pageName: string): InteractionTask {
+  return {
+    id: row.id,
+    postUrl: row.post_url,
+    targetObjectId: row.target_object_id,
+    pageId: row.page_id,
+    pageName,
+    actionType: row.action_type as InteractionTask['actionType'],
+    commentText: row.comment_text,
+    status: row.status as InteractionTask['status'],
+    errorMessage: row.error_message,
+    scheduledAt: row.scheduled_at,
+    executedAt: row.executed_at,
+    createdAt: row.created_at
   }
 }

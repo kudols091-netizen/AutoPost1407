@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppInfo, Page, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
-import type { CreatePostInput } from '@shared/ipcSchemas'
+import type { AppInfo, InteractionTask, Page, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
+import type { CreateInteractionInput, CreatePostInput, UpdatePageInfoInput, UploadPagePictureInput } from '@shared/ipcSchemas'
 
 export interface ImportMediaResult {
   localFilePath: string
@@ -35,6 +35,19 @@ const api = {
   },
   logs: {
     list: (limit?: number): Promise<SystemLog[]> => ipcRenderer.invoke('logs:list', limit)
+  },
+  interactions: {
+    create: (input: CreateInteractionInput): Promise<InteractionTask> =>
+      ipcRenderer.invoke('interactions:create', input),
+    list: (): Promise<InteractionTask[]> => ipcRenderer.invoke('interactions:list'),
+    execute: (taskId: number): Promise<InteractionTask> => ipcRenderer.invoke('interactions:execute', taskId),
+    delete: (taskId: number): Promise<void> => ipcRenderer.invoke('interactions:delete', taskId)
+  },
+  pageEditor: {
+    getDetails: (pageId: number): Promise<PageDetails> => ipcRenderer.invoke('pageEditor:getDetails', pageId),
+    updateInfo: (input: UpdatePageInfoInput): Promise<void> => ipcRenderer.invoke('pageEditor:updateInfo', input),
+    updatePicture: (input: UpdatePageInfoInput): Promise<void> => ipcRenderer.invoke('pageEditor:updatePicture', input),
+    uploadPicture: (input: UploadPagePictureInput): Promise<void> => ipcRenderer.invoke('pageEditor:uploadPicture', input)
   }
 }
 

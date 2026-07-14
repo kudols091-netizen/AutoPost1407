@@ -29,13 +29,15 @@ export async function connectFacebookPages(): Promise<Awaited<ReturnType<typeof 
   const longLivedToken = await exchangeForLongLivedUserToken(shortLivedToken)
   const pages = await fetchManagedPages(longLivedToken)
 
+  const userTokenEnc = encryptToken(longLivedToken)
   for (const page of pages) {
     await upsertPage({
       fbPageId: page.id,
       name: page.name,
       category: page.category ?? null,
       pictureUrl: page.picture?.data?.url ?? null,
-      accessTokenEnc: encryptToken(page.access_token)
+      accessTokenEnc: encryptToken(page.access_token),
+      userTokenEnc
     })
   }
 

@@ -8,6 +8,7 @@ export interface NewPage {
   category: string | null
   pictureUrl: string | null
   accessTokenEnc: Buffer
+  userTokenEnc?: Buffer | null
 }
 
 export type PageRow = Omit<Selectable<PagesTable>, 'is_active'> & { is_active: boolean }
@@ -28,6 +29,7 @@ export async function upsertPage(page: NewPage) {
       category: page.category,
       picture_url: page.pictureUrl,
       access_token_enc: page.accessTokenEnc,
+      user_token_enc: page.userTokenEnc ?? null,
       token_obtained_at: now,
       token_status: 'ok',
       is_active: 1
@@ -38,6 +40,7 @@ export async function upsertPage(page: NewPage) {
         category: page.category,
         picture_url: page.pictureUrl,
         access_token_enc: page.accessTokenEnc,
+        user_token_enc: page.userTokenEnc ?? null,
         token_obtained_at: now,
         token_status: 'ok',
         is_active: 1

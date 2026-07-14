@@ -7,6 +7,7 @@ export interface PagesTable {
   category: string | null
   picture_url: string | null
   access_token_enc: Buffer
+  user_token_enc: Buffer | null
   token_obtained_at: string
   token_status: 'ok' | 'needs_reauth'
   is_active: number
@@ -65,6 +66,20 @@ export interface SystemLogsTable {
   detail: string | null
 }
 
+export interface InteractionTasksTable {
+  id: Generated<number>
+  post_url: string
+  target_object_id: string
+  page_id: number
+  action_type: string
+  comment_text: string | null
+  status: Generated<string>
+  error_message: string | null
+  scheduled_at: string
+  executed_at: string | null
+  created_at: Generated<string>
+}
+
 export interface Database {
   pages: PagesTable
   posts: PostsTable
@@ -73,4 +88,5 @@ export interface Database {
   analytics_snapshots: AnalyticsSnapshotsTable
   app_settings: AppSettingsTable
   system_logs: SystemLogsTable
+  interaction_tasks: InteractionTasksTable
 }
