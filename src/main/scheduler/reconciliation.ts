@@ -1,5 +1,5 @@
 import cron, { type ScheduledTask } from 'node-cron'
-import { getPageById } from '../db/repositories/pagesRepo'
+import { getPageById, listPages } from '../db/repositories/pagesRepo'
 import {
   listPostsByStatus,
   listTargetsByStatus,
@@ -7,13 +7,16 @@ import {
   updatePostStatus,
   updateTarget
 } from '../db/repositories/postsRepo'
+import { hasSnapshotForToday, upsertPageSnapshot } from '../db/repositories/pageSnapshotsRepo'
 import { decryptToken } from '../security/safeStorage'
 import { getPostPublishStatus } from '../graph/posts'
+import { fetchPageFollowerAndReach } from '../graph/pageManager'
 import { submitPostTargets } from '../posting/submitPost'
 import { snapshotAllPublishedTargets, snapshotTarget } from './analyticsPoller'
 import { addSystemLog } from '../db/repositories/systemLogsRepo'
 import { listPendingDueTasks } from '../db/repositories/interactionsRepo'
 import { executeInteractionTask } from '../posting/executeInteraction'
+import { toDateKey } from '../analytics/dateKey'
 
 /** Re-attempts posts left in `draft` because their schedule was outside the 30-day window. */
 async function resubmitDraftPosts(): Promise<void> {
@@ -62,6 +65,38 @@ async function syncScheduledTargets(): Promise<void> {
   await reconcilePostStatuses()
 }
 
+/**
+ * Captures one page_snapshots row per page per calendar day. Self-healing: checks
+ * "does today already have a row?" rather than relying on a fixed cron time, since
+ * the app isn't guaranteed to be running at any particular clock time.
+ */
+async function snapshotPagesIfDue(): Promise<void> {
+  const today = toDateKey(new Date())
+  const pages = await listPages()
+
+  for (const page of pages) {
+    if (!page.is_active || page.token_status === 'needs_reauth') continue
+
+    const already = await hasSnapshotForToday(page.id, today)
+    if (already) continue
+
+    try {
+      const token = decryptToken(page.access_token_enc)
+      const { followerCount, pageReach } = await fetchPageFollowerAndReach(page.fb_page_id, token)
+      await upsertPageSnapshot({ pageId: page.id, capturedAt: today, followerCount, pageReach })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error(`[reconciliation] page snapshot failed for page ${page.id}`, err)
+      await addSystemLog({
+        level: 'error',
+        category: 'page-snapshot',
+        message: `Chụp chỉ số Page "${page.name}" thất bại`,
+        detail: message
+      })
+    }
+  }
+}
+
 /** Executes interaction tasks (react/comment) whose scheduled_at is now due. */
 async function executePendingInteractions(): Promise<void> {
   const tasks = await listPendingDueTasks()
@@ -105,6 +140,7 @@ export function startReconciliationScheduler(): void {
       await resubmitDraftPosts()
       await syncScheduledTargets()
       await snapshotAllPublishedTargets()
+      await snapshotPagesIfDue()
       await executePendingInteractions()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
