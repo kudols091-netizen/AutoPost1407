@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppInfo, InteractionTask, Page, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
+import type { AppInfo, InteractionTask, Page, PageAnalytics, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
 import type { CreateInteractionInput, CreatePostInput, UpdatePageInfoInput, UploadPagePictureInput } from '@shared/ipcSchemas'
 
 export interface ImportMediaResult {
@@ -31,7 +31,8 @@ const api = {
     delete: (postId: number): Promise<DeletePostResult> => ipcRenderer.invoke('posts:delete', postId)
   },
   analytics: {
-    forPost: (postId: number): Promise<PostAnalytics> => ipcRenderer.invoke('analytics:forPost', postId)
+    forPost: (postId: number): Promise<PostAnalytics> => ipcRenderer.invoke('analytics:forPost', postId),
+    forPage: (pageId: number): Promise<PageAnalytics> => ipcRenderer.invoke('analytics:forPage', pageId)
   },
   logs: {
     list: (limit?: number): Promise<SystemLog[]> => ipcRenderer.invoke('logs:list', limit)

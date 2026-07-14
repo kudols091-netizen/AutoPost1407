@@ -109,3 +109,51 @@ export interface InteractionTask {
   executedAt: string | null
   createdAt: string
 }
+
+export interface PageFollowerPoint {
+  date: string
+  followerCount: number
+}
+
+export interface WindowMetricsDto {
+  followerNetChange: number
+  totalPageReach: number | null
+  postCount: number
+  totalReach: number
+  totalReactions: number
+  totalComments: number
+  totalShares: number
+  totalClicks: number
+}
+
+export interface WindowComparisonDto {
+  current: WindowMetricsDto
+  previous: WindowMetricsDto | null
+  pctChange: Partial<Record<keyof WindowMetricsDto, number | null>> | 'insufficient-data'
+}
+
+export interface PagePostAnalytics {
+  postId: number
+  postType: PostType
+  publishedAt: string
+  reach: number
+  reactions: number
+  comments: number
+  shares: number
+  clicks: number
+}
+
+export interface PageAnalytics {
+  pageInfo: {
+    name: string
+    pictureUrl: string | null
+    category: string | null
+    followerCount: number | null
+  }
+  followerHistory: PageFollowerPoint[]
+  comparison: {
+    sevenDay: WindowComparisonDto
+    thirtyDay: WindowComparisonDto
+  }
+  posts: PagePostAnalytics[]
+}

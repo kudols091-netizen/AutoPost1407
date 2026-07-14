@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { app, ipcMain } from 'electron'
-import type { AppInfo, InteractionTask, Page, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
+import type { AppInfo, InteractionTask, Page, PageAnalytics, PageDetails, PostAnalytics, PostDetail, SystemLog } from '@shared/types'
 import { createInteractionSchema, createPostSchema, importMediaSchema, updatePageInfoSchema, uploadPagePictureSchema } from '@shared/ipcSchemas'
 import { GRAPH_API_VERSION, getMetaAppConfig } from '../config/metaApp'
 import { connectFacebookPages } from '../oauth/connectFlow'
@@ -13,7 +13,9 @@ import {
   listPosts,
   listTargetsForPost
 } from '../db/repositories/postsRepo'
-import { listSnapshotsForTarget } from '../db/repositories/analyticsRepo'
+import { listPagePostAnalytics, listSnapshotsForTarget } from '../db/repositories/analyticsRepo'
+import { listSnapshotsForPage } from '../db/repositories/pageSnapshotsRepo'
+import { computeComparison, type PageSnapshotPoint, type PostAggregatePoint } from '../analytics/pageComparison'
 import { addSystemLog, listSystemLogs } from '../db/repositories/systemLogsRepo'
 import {
   createInteractionTask,
@@ -155,6 +157,57 @@ export function registerIpcHandlers(): void {
     )
 
     return { post: toPostDto(post), targets: targetsWithAnalytics }
+  })
+
+  ipcMain.handle('analytics:forPage', async (_event, pageId: number): Promise<PageAnalytics> => {
+    const page = await getPageById(pageId)
+    if (!page) throw new Error(`Page ${pageId} not found`)
+
+    const snapshots = await listSnapshotsForPage(pageId)
+    const postRows = await listPagePostAnalytics(pageId)
+
+    const followerHistory = snapshots.map((s) => ({ date: s.captured_at, followerCount: s.follower_count }))
+    const latestSnapshot = snapshots.at(-1) ?? null
+
+    const pageSnapshotPoints: PageSnapshotPoint[] = snapshots.map((s) => ({
+      capturedAt: s.captured_at,
+      followerCount: s.follower_count,
+      pageReach: s.page_reach
+    }))
+    const postAggregates: PostAggregatePoint[] = postRows.map((r) => ({
+      publishedAt: r.publishedAt,
+      reach: r.reach,
+      reactions: r.reactions,
+      comments: r.comments,
+      shares: r.shares,
+      clicks: r.clicks
+    }))
+
+    const now = new Date()
+
+    return {
+      pageInfo: {
+        name: page.name,
+        pictureUrl: page.picture_url,
+        category: page.category,
+        followerCount: latestSnapshot?.follower_count ?? null
+      },
+      followerHistory,
+      comparison: {
+        sevenDay: computeComparison(pageSnapshotPoints, postAggregates, 7, now),
+        thirtyDay: computeComparison(pageSnapshotPoints, postAggregates, 30, now)
+      },
+      posts: postRows.map((r) => ({
+        postId: r.postId,
+        postType: r.postType as PageAnalytics['posts'][number]['postType'],
+        publishedAt: r.publishedAt,
+        reach: r.reach,
+        reactions: r.reactions,
+        comments: r.comments,
+        shares: r.shares,
+        clicks: r.clicks
+      }))
+    }
   })
 
   ipcMain.handle('interactions:create', async (_event, rawInput: unknown): Promise<InteractionTask> => {
