@@ -4,7 +4,7 @@ import { graphGet } from './client'
  * Kept as a plain array (not hardcoded into query-building code) since Meta periodically
  * renames/deprecates Insights metrics — swap this list without touching call sites.
  */
-export const POST_INSIGHT_METRICS = ['post_engaged_users', 'post_clicks']
+export const POST_INSIGHT_METRICS = ['post_engaged_users', 'post_clicks', 'post_impressions']
 
 interface InsightValue {
   value: number | Record<string, number>
