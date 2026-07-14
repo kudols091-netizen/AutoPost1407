@@ -116,9 +116,11 @@ For each window pair, compute:
 - Summed reach/reactions/comments/shares/clicks across posts published in the
   window (latest value per target from `analytics_snapshots`, summed)
 - Percent change of each metric vs. the comparison window; if the comparison
-  window's value is 0, or if fewer than 7 (or 30) days of `page_snapshots`
-  history exist yet, display "not enough data yet" instead of a misleading
-  percentage or divide-by-zero
+  window's value is 0, or if `page_snapshots` history doesn't yet reach back
+  2x the window length (14 days for the 7-day view, 60 for the 30-day view —
+  a full comparison window requires data for both the current and prior
+  period), display "not enough data yet" instead of a misleading percentage
+  or divide-by-zero
 
 This logic lives entirely in the IPC handler layer as an aggregation query
 over the two existing/new tables — no new table is needed to represent
