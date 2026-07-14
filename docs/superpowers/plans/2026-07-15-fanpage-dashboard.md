@@ -179,7 +179,7 @@ describe('computeComparison', () => {
 
   it('computes percent change across two full windows', () => {
     const pageSnapshots = [
-      { capturedAt: daysAgo(now, 13), followerCount: 80, pageReach: 300 },
+      { capturedAt: daysAgo(now, 14), followerCount: 80, pageReach: 300 }, // exactly satisfies hasEnoughHistory's <= boundary
       { capturedAt: daysAgo(now, 7), followerCount: 100, pageReach: 400 }, // end of previous window
       { capturedAt: daysAgo(now, 6), followerCount: 102, pageReach: 410 }, // start of current window
       { capturedAt: daysAgo(now, 0), followerCount: 122, pageReach: 450 }
