@@ -1060,7 +1060,11 @@ function formatPct(value: number | null): string {
 
 function ComparisonCard({ title, comparison }: { title: string; comparison: WindowComparisonDto }): JSX.Element {
   const insufficient = comparison.pctChange === 'insufficient-data'
-  const pct = insufficient ? null : comparison.pctChange
+  // Plain `insufficient ? null : comparison.pctChange` fails tsc's strict mode (TS7053) —
+  // the 'insufficient-data' literal doesn't narrow away through this assignment pattern.
+  const pct = insufficient
+    ? null
+    : (comparison.pctChange as Partial<Record<keyof WindowComparisonDto['current'], number | null>>)
 
   const rows: Array<{ label: string; value: number | null; key: keyof WindowComparisonDto['current'] }> = [
     { label: 'Follower tăng ròng', value: comparison.current.followerNetChange, key: 'followerNetChange' },
