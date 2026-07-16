@@ -7,6 +7,13 @@ import { IconGauge, IconInbox } from '../components/Icons'
 
 type SortKey = 'publishedAt' | 'postType' | 'reach' | 'reactions' | 'comments' | 'shares' | 'clicks'
 
+type OverviewSortKey = 'name' | 'followerCount' | 'followerNetChange' | 'postCount' | 'totalReach' | 'totalReactions'
+
+interface OverviewEntry {
+  page: Page
+  analytics: PageAnalytics | null
+}
+
 function formatPct(value: number | null): string {
   if (value === null) return '—'
   const sign = value >= 0 ? '+' : ''
@@ -53,6 +60,11 @@ function Dashboard(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('publishedAt')
   const [sortAsc, setSortAsc] = useState(false)
+  const [overviewData, setOverviewData] = useState<OverviewEntry[]>([])
+  const [isOverviewLoading, setIsOverviewLoading] = useState(false)
+  const [overviewWindowDays, setOverviewWindowDays] = useState<7 | 30>(7)
+  const [overviewSortKey, setOverviewSortKey] = useState<OverviewSortKey>('followerNetChange')
+  const [overviewSortAsc, setOverviewSortAsc] = useState(false)
 
   useEffect(() => {
     window.api.pages.list().then((list) => {
@@ -60,6 +72,24 @@ function Dashboard(): JSX.Element {
       if (list.length > 0) setSelectedPageId(list[0].id)
     })
   }, [])
+
+  useEffect(() => {
+    if (pages.length <= 1) {
+      setOverviewData([])
+      return
+    }
+    setIsOverviewLoading(true)
+    Promise.all(
+      pages.map((page) =>
+        window.api.analytics
+          .forPage(page.id)
+          .then((analytics) => ({ page, analytics }))
+          .catch(() => ({ page, analytics: null }))
+      )
+    )
+      .then(setOverviewData)
+      .finally(() => setIsOverviewLoading(false))
+  }, [pages])
 
   useEffect(() => {
     if (selectedPageId === null) {
@@ -102,6 +132,57 @@ function Dashboard(): JSX.Element {
     return posts
   }, [analytics, sortKey, sortAsc])
 
+  const availableOverview = useMemo(
+    () => overviewData.filter((entry): entry is OverviewEntry & { analytics: PageAnalytics } => entry.analytics !== null),
+    [overviewData]
+  )
+
+  const overviewTotals = useMemo(() => {
+    const windowKey = overviewWindowDays === 7 ? 'sevenDay' : 'thirtyDay'
+    return availableOverview.reduce(
+      (acc, { analytics }) => {
+        const current = analytics.comparison[windowKey].current
+        return {
+          followerNetChange: acc.followerNetChange + current.followerNetChange,
+          postCount: acc.postCount + current.postCount,
+          totalReach: acc.totalReach + current.totalReach,
+          totalReactions: acc.totalReactions + current.totalReactions
+        }
+      },
+      { followerNetChange: 0, postCount: 0, totalReach: 0, totalReactions: 0 }
+    )
+  }, [availableOverview, overviewWindowDays])
+
+  const overviewRows = useMemo(() => {
+    const windowKey = overviewWindowDays === 7 ? 'sevenDay' : 'thirtyDay'
+    return availableOverview.map(({ page, analytics }) => {
+      const comparison = analytics.comparison[windowKey]
+      const pct = comparison.pctChange === 'insufficient-data' ? null : comparison.pctChange
+      return {
+        pageId: page.id,
+        name: page.name,
+        pictureUrl: page.pictureUrl,
+        followerCount: analytics.pageInfo.followerCount,
+        followerNetChange: comparison.current.followerNetChange,
+        followerPct: pct ? pct.followerNetChange ?? null : null,
+        postCount: comparison.current.postCount,
+        totalReach: comparison.current.totalReach,
+        totalReactions: comparison.current.totalReactions
+      }
+    })
+  }, [availableOverview, overviewWindowDays])
+
+  const sortedOverviewRows = useMemo(() => {
+    const rows = [...overviewRows]
+    rows.sort((a, b) => {
+      const av = a[overviewSortKey]
+      const bv = b[overviewSortKey]
+      const comparison = typeof av === 'string' ? av.localeCompare(String(bv)) : Number(av ?? 0) - Number(bv ?? 0)
+      return overviewSortAsc ? comparison : -comparison
+    })
+    return rows
+  }, [overviewRows, overviewSortKey, overviewSortAsc])
+
   function toggleSort(key: SortKey): void {
     if (key === sortKey) {
       setSortAsc(!sortAsc)
@@ -114,6 +195,20 @@ function Dashboard(): JSX.Element {
   function sortIndicator(key: SortKey): string {
     if (key !== sortKey) return ''
     return sortAsc ? ' ▲' : ' ▼'
+  }
+
+  function toggleOverviewSort(key: OverviewSortKey): void {
+    if (key === overviewSortKey) {
+      setOverviewSortAsc(!overviewSortAsc)
+    } else {
+      setOverviewSortKey(key)
+      setOverviewSortAsc(false)
+    }
+  }
+
+  function overviewSortIndicator(key: OverviewSortKey): string {
+    if (key !== overviewSortKey) return ''
+    return overviewSortAsc ? ' ▲' : ' ▼'
   }
 
   return (
@@ -130,6 +225,103 @@ function Dashboard(): JSX.Element {
         </div>
       ) : (
         <>
+          {pages.length > 1 && (
+            <div className="overview-all-pages">
+              <div className="panel-header">
+                <h3>Tổng quan tất cả Page</h3>
+                <div className="window-toggle">
+                  <button
+                    className={overviewWindowDays === 7 ? 'active' : ''}
+                    onClick={() => setOverviewWindowDays(7)}
+                  >
+                    7 ngày
+                  </button>
+                  <button
+                    className={overviewWindowDays === 30 ? 'active' : ''}
+                    onClick={() => setOverviewWindowDays(30)}
+                  >
+                    30 ngày
+                  </button>
+                </div>
+              </div>
+
+              {isOverviewLoading && <p className="hint">Đang tải tổng quan...</p>}
+
+              {!isOverviewLoading && availableOverview.length === 0 && (
+                <p className="hint">Không tải được dữ liệu tổng quan.</p>
+              )}
+
+              {!isOverviewLoading && availableOverview.length > 0 && (
+                <>
+                  <div className="stat-tiles">
+                    <div className="stat-tile" style={{ ['--tile-color' as string]: 'var(--accent)' }}>
+                      <span className="stat-tile-label">FOLLOWER TĂNG RÒNG</span>
+                      <span className="stat-tile-value">{overviewTotals.followerNetChange}</span>
+                    </div>
+                    <div className="stat-tile" style={{ ['--tile-color' as string]: 'var(--success)' }}>
+                      <span className="stat-tile-label">SỐ BÀI ĐĂNG</span>
+                      <span className="stat-tile-value">{overviewTotals.postCount}</span>
+                    </div>
+                    <div className="stat-tile" style={{ ['--tile-color' as string]: 'var(--info)' }}>
+                      <span className="stat-tile-label">TỔNG REACH</span>
+                      <span className="stat-tile-value">{overviewTotals.totalReach}</span>
+                    </div>
+                    <div className="stat-tile" style={{ ['--tile-color' as string]: 'var(--warning)' }}>
+                      <span className="stat-tile-label">TỔNG REACTION</span>
+                      <span className="stat-tile-value">{overviewTotals.totalReactions}</span>
+                    </div>
+                  </div>
+
+                  <table className="target-table overview-table">
+                    <thead>
+                      <tr>
+                        <th onClick={() => toggleOverviewSort('name')}>Page{overviewSortIndicator('name')}</th>
+                        <th onClick={() => toggleOverviewSort('followerCount')}>
+                          Follower{overviewSortIndicator('followerCount')}
+                        </th>
+                        <th onClick={() => toggleOverviewSort('followerNetChange')}>
+                          Follower tăng ròng{overviewSortIndicator('followerNetChange')}
+                        </th>
+                        <th onClick={() => toggleOverviewSort('postCount')}>
+                          Số bài đăng{overviewSortIndicator('postCount')}
+                        </th>
+                        <th onClick={() => toggleOverviewSort('totalReach')}>
+                          Tổng reach{overviewSortIndicator('totalReach')}
+                        </th>
+                        <th onClick={() => toggleOverviewSort('totalReactions')}>
+                          Tổng reaction{overviewSortIndicator('totalReactions')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedOverviewRows.map((row) => (
+                        <tr
+                          key={row.pageId}
+                          className={row.pageId === selectedPageId ? 'active' : ''}
+                          onClick={() => setSelectedPageId(row.pageId)}
+                        >
+                          <td className="overview-page-cell">
+                            {row.pictureUrl && (
+                              <img src={row.pictureUrl} alt={row.name} className="overview-page-avatar" />
+                            )}
+                            {row.name}
+                          </td>
+                          <td>{row.followerCount ?? '—'}</td>
+                          <td>
+                            {row.followerNetChange} <span className="pct">{formatPct(row.followerPct)}</span>
+                          </td>
+                          <td>{row.postCount}</td>
+                          <td>{row.totalReach}</td>
+                          <td>{row.totalReactions}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="dashboard-page-picker">
             <select value={selectedPageId ?? ''} onChange={(e) => setSelectedPageId(Number(e.target.value))}>
               {pages.map((page) => (

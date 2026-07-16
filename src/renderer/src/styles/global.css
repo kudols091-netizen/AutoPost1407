@@ -1164,3 +1164,53 @@ input[type='checkbox'] {
   cursor: pointer;
   user-select: none;
 }
+
+/* ---------- All-Pages Overview ---------- */
+
+.overview-all-pages {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.window-toggle {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.window-toggle button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.window-toggle button.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.overview-table tbody tr {
+  cursor: pointer;
+}
+
+.overview-table tbody tr.active {
+  background: var(--accent-soft);
+}
+
+.overview-page-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.overview-page-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
